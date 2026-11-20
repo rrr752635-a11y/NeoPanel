@@ -9,6 +9,17 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
+      - name: Ekstrak NeoPanel.zip
+        shell: bash
+        run: |
+          if [ ! -f NeoPanel.zip ]; then
+            echo "NeoPanel.zip tidak ada di root repo. Isi root:"
+            ls -la
+            exit 1
+          fi
+          unzip -oq NeoPanel.zip
+          ls
+
       - uses: actions/setup-java@v5
         with:
           distribution: temurin
