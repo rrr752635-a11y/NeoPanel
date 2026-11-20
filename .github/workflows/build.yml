@@ -1,23 +1,47 @@
-name: Build APK
+name: Buat APK
 on:
-  workflow_dispatch:
   push:
+  workflow_dispatch:
+
 jobs:
-  build:
+  bangun:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - run: unzip -o NeoPanel.zip -d src
-      - uses: actions/setup-java@v4
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: 17
-      - uses: gradle/actions/setup-gradle@v3
+
+      - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: 8.7
-      - run: gradle assembleDebug
-        working-directory: src
+          cache-disabled: true
+
+      - name: Build APK
+        shell: bash
+        run: |
+          set -o pipefail
+          gradle assembleDebug --no-daemon --console=plain --stacktrace 2>&1 | tee build.log
+
+      - name: Ringkasan error
+        if: failure()
+        shell: bash
+        run: |
+          echo '### Error build' >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          grep -nE "^e: |What went wrong|Execution failed" -A3 build.log | head -80 >> "$GITHUB_STEP_SUMMARY" || true
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+
       - uses: actions/upload-artifact@v4
+        if: always()
         with:
-          name: NeoPanel-APK
-          path: src/app/build/outputs/apk/debug/app-debug.apk
+          name: build-log
+          path: build.log
+
+      - uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: NeoPanel-debug
+          path: app/build/outputs/apk/debug/*.apk
